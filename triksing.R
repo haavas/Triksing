@@ -1,6 +1,7 @@
 library(googlesheets4)
 library(tidyverse)
 library(gganimate)
+library(MASS)
 fotball<- sheets_read("1CAmqpuF6ViHyYRhVZjbIuxZ4uXg4xi53_xm1Yz0KuoA", col_names = FALSE)
 fotball$K<-1
 fotball_lang <- fotball %>%
@@ -101,23 +102,93 @@ ggplot(mm, aes(x = x, y = prob, group = Model, col = Model)) +
 
 x <- 0:(max(tabell_data$antall)+1)
 dfx <- as.data.frame(x)
-for (i in 200:600) {
+for(i in 0:51) {
+  hi <- (i*10) +200
+  lo <- (i*10)
   sample <- fotball_lang %>% 
     arrange(test_num, n) %>% 
     rownames_to_column() %>% 
-    mutate(rowname = as.numeric(rowname)) %>% 
-    filter(rowname < 200)
+    mutate(rname = as.numeric(rowname)) %>%
+    filter(rname %in% (lo:hi)) 
   m2 <- glm.nb(antall_2 ~ K, data = sample)
   probtable <- as.data.frame((dnbinom(x, size = m2$theta, mu = exp(m2$coefficients[1]))) * 100)
-  dfx 
-  
+  dfx <- cbind(dfx, probtable)
 }
+
+names(dfx) <- c('x', as.character(1:52))
+dfy <- dfx %>% 
+  pivot_longer(-x, names_to = 'iter', values_to = 'p') %>% 
+  mutate(iter = as.numeric(iter))
+
+p <- ggplot(dfy, aes(x=x, y=p)) + 
+  geom_line(color = 'red') +
+  transition_time(iter) + 
+  labs(title = "Forsøk: {round(frame_time*10)} -- {round(frame_time*10)+200}") +
+  theme_light() +
+  scale_x_continuous(breaks = seq(0,max(tabell_data$antall)-2,1),
+                     labels = seq(2,max(tabell_data$antall),1))
+
+
+animate(p, fps=5, end_pause = 50)
+
+
+
+
+
+
+
+
 sample <- fotball_lang %>% 
   arrange(test_num, n) %>% 
   rownames_to_column() %>% 
   mutate(rowname = as.numeric(rowname)) %>% 
-  filter(rowname < 200)
+  filter(rowname %in% 200)
 
 probtable <- as.data.frame((dnbinom(x, size = m2$theta, mu = exp(m2$coefficients[1]))) * 100)
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+library(gapminder)
+head(gapminder)
+
+
+
+p <- ggplot(
+  gapminder, 
+  aes(x = gdpPercap, y=lifeExp, size = pop, colour = country)
+) +
+  geom_point(show.legend = FALSE, alpha = 0.7) +
+  scale_color_viridis_d() +
+  scale_size(range = c(2, 12)) +
+  scale_x_log10() +
+  labs(x = "GDP per capita", y = "Life expectancy")
+p
